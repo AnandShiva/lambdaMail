@@ -1,59 +1,119 @@
-'use strict';
-const nodemailer = require('nodemailer');
-// edited in notepad++
+const fs = require('fs');
+const readline = require('readline');
+const {google} = require('googleapis');
+const mimemessage = require('mimemessage');
+const Base64 = require('js-base64').Base64;
+// If modifying these scopes, delete token.json.
+//const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
+const SCOPES = ['https://mail.google.com','https://www.googleapis.com/auth/gmail.modify','https://www.googleapis.com/auth/gmail.compose','https://www.googleapis.com/auth/gmail.send'];
 
-var smtpTransport = require('nodemailer-smtp-transport');
+// The file token.json stores the user's access and refresh tokens, and is
+// created automatically when the authorization flow completes for the first
+// time.
+const TOKEN_PATH = 'token.json';
 
-var transporter = nodemailer.createTransport(smtpTransport({
-  service: 'gmail',
-  auth: {
-    user: "anandshivaunofficial@gmail.com", // generated ethereal user
-    pass: "revliSxE3g" // generated ethereal password
+
+
+/**
+ * Create an OAuth2 client with the given credentials, and then execute the
+ * given callback function.
+ * @param {Object} credentials The authorization client credentials.
+ * @param {function} callback The callback to call with the authorized client.
+ */
+function authorize(credentials, callback) {
+  const {client_secret, client_id, redirect_uris} = credentials.installed;
+  const oAuth2Client = new google.auth.OAuth2(
+      client_id, client_secret, redirect_uris[0]);
+
+  // Check if we have previously stored a token.
+  fs.readFile(TOKEN_PATH, (err, token) => {
+    if (err) return getNewToken(oAuth2Client, callback);
+    oAuth2Client.setCredentials(JSON.parse(token));
+    callback(oAuth2Client);
+  });
 }
-}));
 
-// create reusable transporter object using the default SMTP transport
-// let transporter = nodemailer.createTransport({
-//     host: 'smtp.gmail.com',
-//     port: 587,
-//     secure: false, // true for 465, false for other ports
-//     auth: {
-//         user: "anandshivaunofficial@gmail.com", // generated ethereal user
-//         pass: "revliSxE3g" // generated ethereal password
-//     }
-// });
+/**
+ * Get and store new token after prompting for user authorization, and then
+ * execute the given callback with the authorized OAuth2 client.
+ * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
+ * @param {getEventsCallback} callback The callback for the authorized client.
+ */
+function getNewToken(oAuth2Client, callback) {
+  const authUrl = oAuth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: SCOPES,
+  });
+  console.log('Authorize this app by visiting this url:', authUrl);
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  rl.question('Enter the code from that page here: ', (code) => {
+    rl.close();
+    oAuth2Client.getToken(code, (err, token) => {
+      if (err) return console.error('Error retrieving access token', err);
+      oAuth2Client.setCredentials(token);
+      // Store the token to disk for later program executions
+      fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
+        if (err) return console.error(err);
+        console.log('Token stored to', TOKEN_PATH);
+      });
+      callback(oAuth2Client);
+    });
+  });
+}
 
-var sendEMail = (subject, body, mailing_list) => {
-    // setup email data with unicode symbols
-    let mailOptions = {
-        from: '"SSB" <ssb.sap.com>', // sender address
-        to: mailing_list, // list of receivers
-        subject: subject, // Subject line
-        text: body, // plain text body
-        html: body // html body
-    };
+/**
+ * Lists the labels in the user's account.
+ *
+ * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ */
+function listLabels(auth) {
+  const gmail = google.gmail({version: 'v1', auth});
+  gmail.users.labels.list({
+    userId: 'anandshivaunofficial@gmail.com',
+  }, (err, res) => {
+    if (err) return console.log('The API returned an error: ' + err);
+    const labels = res.data.labels;
+    if (labels.length) {
+      console.log('Labels:');
+      labels.forEach((label) => {
+        console.log(`- ${label.name}`);
+      });
+    } else {
+      console.log('No labels found.');
+    }
+  });
+}
 
-
-     // send mail with defined transport object
-    transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-            return console.log(error);
+function sendMail(auth){
+    const gmail = google.gmail({version: 'v1', auth});
+    var msg = mimemessage.factory({
+        contentType: 'multipart/mixed',
+        body: ['This is the plain text version of the message.']
+    });
+    msg.header('Subject', 'Tasks List');
+    msg.header('From', 'Google <no-reply@accounts.google.com>');
+    msg.header('To','anandshivaunofficial@gmail.com');
+    var base64EncodedEmail = Base64.encodeURI(msg);
+    gmail.users.messages.send({
+        'userId': 'anandshivaunofficial@gmail.com',
+        'resource': {
+          'raw': base64EncodedEmail
         }
-        console.log('Message sent: %s', info.messageId);
-        // Preview only available when sending through an Ethereal account
-        console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
-        // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
-        // Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
-    }); 
-
+      },(err, res) => {
+        console.log(err);
+        console.log(res);
+      }); 
+  
 }
-sendEMail("subject", "body", "anandkumar.shiva@gmail.com");
 exports.handler = async (event) => {
-    // TODO implement
-    sendEMail("subject", "body", "anandkumar.shiva@gmail.com");
-    const response = {
-        statusCode: 200,
-        body: JSON.stringify('Hello from Lambda!'),
-    };
-    return response;
+    // Load client secrets from a local file.
+    fs.readFile('credentials.json', (err, content) => {
+    if (err) return console.log('Error loading client secret file:', err);
+        // Authorize a client with credentials, then call the Gmail API.
+        //authorize(JSON.parse(content), listLabels);
+        authorize(JSON.parse(content), sendMail);
+    });
 };

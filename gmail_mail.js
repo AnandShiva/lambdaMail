@@ -3,8 +3,6 @@ const readline = require('readline');
 const {google} = require('googleapis');
 const mimemessage = require('mimemessage');
 const Base64 = require('js-base64').Base64;
-
-
 // If modifying these scopes, delete token.json.
 //const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 const SCOPES = ['https://mail.google.com','https://www.googleapis.com/auth/gmail.modify','https://www.googleapis.com/auth/gmail.compose','https://www.googleapis.com/auth/gmail.send'];

@@ -1,0 +1,31 @@
+{
+  "name": "lambdamail",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@babel/core": "^7.2.2",
+    "@babel/preset-env": "^7.2.3",
+    "@babel/preset-react": "^7.0.0",
+    "@babel/register": "^7.0.0",
+    "googleapis": "^39.2.0",
+    "ignore-styles": "^5.0.1",
+    "js-base64": "^2.5.1",
+    "mimemessage": "^1.0.5",
+    "react": "^16.7.0",
+    "react-dom": "^16.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnandShiva/lambdaMail.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AnandShiva/lambdaMail/issues"
+  },
+  "homepage": "https://github.com/AnandShiva/lambdaMail#readme"
+}

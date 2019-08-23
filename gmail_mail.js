@@ -3,6 +3,10 @@ const readline = require('readline');
 const {google} = require('googleapis');
 const mimemessage = require('mimemessage');
 const Base64 = require('js-base64').Base64;
+const OrganisedChaos = require('./OrganisedChaosForEmail');
+var ReactDOM = require('react-dom');
+var React = require('react');
+var  ReactDOMServer = require('react-dom/server');
 // If modifying these scopes, delete token.json.
 //const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 const SCOPES = ['https://mail.google.com','https://www.googleapis.com/auth/gmail.modify','https://www.googleapis.com/auth/gmail.compose','https://www.googleapis.com/auth/gmail.send'];
@@ -30,7 +34,6 @@ function authorize(credentials, callback) {
   const {client_secret, client_id, redirect_uris} = credentials.installed;
   const oAuth2Client = new google.auth.OAuth2(
       client_id, client_secret, redirect_uris[0]);
-
   // Check if we have previously stored a token.
   fs.readFile(TOKEN_PATH, (err, token) => {
     if (err) return getNewToken(oAuth2Client, callback);
@@ -95,13 +98,17 @@ function listLabels(auth) {
 
 function sendMail(auth){
     const gmail = google.gmail({version: 'v1', auth});
+    let teams_list = [{"team_name":"t1","team_members":[{"Name":"p2","PreferredGroup":"","email":""},{"Name":"p4","PreferredGroup":"","email":""}]},{"team_name":"t2","team_members":[{"Name":"p5","PreferredGroup":"","email":""},{"Name":"p3","PreferredGroup":"","email":""}]},{"team_name":"t3","team_members":[{"Name":"p6","PreferredGroup":"","email":""},{"Name":"p1","PreferredGroup":"","email":""}]}];
+    let email_id = 'anandshivaunofficial@gmail.com';
+    let OrganisedChaosComponent = React.cloneElement(OrganisedChaos,[{teams_list : teams_list }]);
+    var email_html_body = ReactDOMServer.renderToString(OrganisedChaosComponent);
     var msg = mimemessage.factory({
-        contentType: 'multipart/mixed',
+        contentType: 'text/html',
         body: ['This is the plain text version of the message.']
     });
     msg.header('Subject', 'Tasks List');
-    msg.header('From', 'Google <no-reply@accounts.google.com>');
-    msg.header('To','anandshivaunofficial@gmail.com');
+    msg.header('From', email_id);
+    msg.header('To',email_id);
     var base64EncodedEmail = Base64.encodeURI(msg);
     gmail.users.messages.send({
         'userId': 'anandshivaunofficial@gmail.com',
